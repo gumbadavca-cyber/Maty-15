@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BOMB PROTOCOL</title>
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#090d12;color:#e8f0f7;
+ font-family:Arial,sans-serif;text-align:center;
+ padding:18px 12px;min-height:100vh
+}
+.wrap{max-width:520px;margin:auto}
+h1{color:#ff4545;letter-spacing:4px;font-size:30px}
+.sub{color:#98a6b6;font-size:13px;letter-spacing:2px}
+.panel{
+ background:#141c25;border:1px solid #344250;
+ border-radius:14px;padding:18px;margin:15px 0
+}
+#timer{font-size:48px;font-weight:bold;color:#ff4545;font-variant-numeric:tabular-nums}
+#status{color:#ff6969;font-size:13px;letter-spacing:2px}
+.progress{display:flex;justify-content:center;gap:7px;margin:15px 0}
+.slot{
+ width:36px;height:43px;border:1px solid #435362;
+ border-radius:6px;display:grid;place-items:center;
+ font-size:22px;font-weight:bold;color:#54f5a5
+}
+.slot.found{border-color:#54f5a5;background:#103327}
+h2{font-size:20px}
+#question{font-size:17px;line-height:1.5;min-height:75px}
+#answer{
+ min-height:48px;background:#080c10;border:1px solid #435362;
+ border-radius:8px;margin:15px 0;padding:12px;
+ font-size:23px;letter-spacing:4px;overflow-wrap:anywhere
+}
+.keyboard{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.key{
+ border:1px solid #3c4b5a;background:#222e3b;color:white;
+ border-radius:7px;padding:11px 0;font-size:17px;
+ font-weight:bold;cursor:pointer;touch-action:manipulation
+}
+.key:active{background:#45586c}
+.key.action{background:#344354;font-size:12px}
+button{font-family:inherit}
+.mainbtn{
+ width:100%;padding:14px;margin-top:12px;border:0;
+ border-radius:8px;background:#ff4545;color:white;
+ font-size:16px;font-weight:bold;cursor:pointer
+}
+.secondary{background:#273442}
+#message{min-height:25px;margin-top:12px;font-weight:bold}
+.good{color:#54f5a5}
+.bad{color:#ff6969}
+#game{display:none}
+#end{display:none}
+.small{font-size:12px;color:#93a2b2;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="sub">SYSTÉM ZABEZPEČENÍ // VERZE 07</div>
+ <h1>BOMB PROTOCOL</h1>
+
+ <div class="panel">
+  <div id="status">ČEKÁ NA SPUŠTĚNÍ</div>
+  <div id="timer">04:00</div>
+  <div class="small">Vyřeš všechny úkoly před vypršením času.</div>
+ </div>
+
+ <div id="start" class="panel">
+  <h2>⚠️ BEZPEČNOSTNÍ PROTOKOL</h2>
+  <p>Čas běží od spuštění. Každá správná odpověď odhalí jedno písmeno tajenky.</p>
+  <p>Klávesnice obsahuje i falešná písmena. Přemýšlej, než odpovíš.</p>
+  <button class="mainbtn" onclick="startGame()">SPUSTIT ODPOČET</button>
+ </div>
+
+ <div id="game">
+  <div class="progress" id="progress"></div>
+  <div class="panel">
+   <div class="sub" id="number">ÚKOL 1 / 7</div>
+   <h2 id="title">VSTUPNÍ TEST</h2>
+   <p id="question"></p>
+   <div class="small">Zadej odpověď pomocí klávesnice.</div>
+   <div id="answer"></div>
+   <div class="keyboard" id="keyboard"></div>
+   <button class="mainbtn" onclick="checkAnswer()">POTVRDIT ODPOVĚĎ</button>
+   <button class="mainbtn secondary" onclick="showHint()">ZOBRAZIT NÁPOVĚDU</button>
+   <div id="message"></div>
+   <p class="small" id="hint" style="display:none"></p>
+  </div>
+ </div>
+
+ <div id="end" class="panel">
+  <h2 id="endTitle"></h2>
+  <p id="endText"></p>
+  <div id="finalCode" style="font-size:34px;font-weight:bold;letter-spacing:7px;color:#54f5a5"></div>
+  <button class="mainbtn" onclick="location.reload()">HRÁT ZNOVU</button>
+ </div>
+</div>
+
+<script>
+const tasks = [
+ {
+  title:"ZELENÁ ZÓNA",
+  question:"Doplň slovo: _ E S. Místo, kde rostou stromy a můžeš tam najít houby.",
+  answer:"LES",letterIndex:0,
+  hint:"Má tři písmena. Začíná písmenem L."
+ },
+ {
+  title:"POHLED VEN",
+  question:"Doplň slovo: _ K N O. Je ve zdi a můžeš se jím dívat ven.",
+  answer:"OKNO",letterIndex:0,
+  hint:"Má čtyři písmena a začíná samohláskou."
+ },
+ {
+  title:"BAŽINNÝ SIGNÁL",
+  question:"Skáče, kváká a často žije poblíž vody. Jak se jmenuje?",
+  answer:"ŽÁBA",letterIndex:0,
+  hint:"Její název začíná písmenem Ž."
+ },
+ {
+  title:"TMA",
+  question:"Jak se nazývá část dne, kdy je tma a většina lidí spí? Má tři písmena.",
+  answer:"NOC",letterIndex:0,
+  hint:"Je to opak dne."
+ },
+ {
+  title:"ARKTICKÁ STANICE",
+  question:"Jak se nazývá tradiční sněhový přístřešek spojovaný s Arktidou?",
+  answer:"IGLÚ",letterIndex:0,
+  hint:"Začíná písmenem I a má čtyři písmena."
+ },
+ {
+  title:"FINÁLNÍ CÍL",
+  question:"Jak se říká místu, kam chceš dojít, nebo výsledku, kterého chceš dosáhnout?",
+  answer:"CÍL",letterIndex:0,
+  hint:"Jsou to tři písmena. Začíná písmenem C."
+ },
+ {
+  title:"ODRAZ",
+  question:"Jak se nazývá zvuk, který se odrazí od překážky a vrátí se k tobě?",
+  answer:"ECHO",letterIndex:0,
+  hint:"Čtyři písmena. Začíná písmenem E."
+ }
+];
+
+const keys = [
+ "A","B","C","Č","D","E","F",
+ "G","H","I","J","K","L","M",
+ "N","O","P","R","S","T","U",
+ "V","Y","Z","Ž","Á","Í","Ú",
+ "X","Q","W","Ě","Š","Ř","Ů",
+ "Ď","Ť","Ň","É","Ó","CH","Ý"
+];
+
+let current=0;
+let entered="";
+let found=[];
+let seconds=240;
+let interval=null;
+let ended=false;
+
+function normalize(s){
+ return s.toLocaleUpperCase("cs-CZ")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g,"")
+  .replace(/[^A-Z]/g,"");
+}
+
+function startGame(){
+ document.getElementById("start").style.display="none";
+ document.getElementById("game").style.display="block";
+ document.getElementById("status").textContent="SYSTÉM AKTIVNÍ";
+ createKeyboard();
+ createProgress();
+ renderTask();
+ interval=setInterval(()=>{
+  if(ended)return;
+  seconds--;
+  updateTimer();
+  if(seconds<=0) finish(false);
+ },1000);
+}
+
+function updateTimer(){
+ const m=Math.floor(seconds/60).toString().padStart(2,"0");
+ const s=(seconds%60).toString().padStart(2,"0");
+ document.getElementById("timer").textContent=m+":"+s;
+ if(seconds<=30)document.getElementById("timer").style.color="#ff2020";
+}
+
+function createKeyboard(){
+ const k=document.getElementById("keyboard");
+ k.innerHTML="";
+ keys.forEach(ch=>{
+  const b=document.createElement("button");
+  b.className="key";
+  b.textContent=ch;
+  b.type="button";
+  b.onclick=()=>typeLetter(ch);
+  k.appendChild(b);
+ });
+ [
+  ["⌫ SMAZAT",backspace],
+  ["VYMAZAT VŠE",clearAnswer]
+ ].forEach(item=>{
+  const b=document.createElement("button");
+  b.className="key action";
+  b.style.gridColumn="span 3";
+  b.textContent=item[0];
+  b.type="button";
+  b.onclick=item[1];
+  k.appendChild(b);
+ });
+}
+
+function createProgress(){
+ const p=document.getElementById("progress");
+ p.innerHTML="";
+ for(let i=0;i<7;i++){
+  const s=document.createElement("div");
+  s.className="slot";
+  s.id="slot"+i;
+  s.textContent=found[i]||"";
+  if(found[i])s.classList.add("found");
+  p.appendChild(s);
+ }
+}
+
+function renderTask(){
+ const t=tasks[current];
+ entered="";
+ document.getElementById("number").textContent=
+  "ÚKOL "+(current+1)+" / "+tasks.length;
+ document.getElementById("title").textContent=t.title;
+ document.getElementById("question").textContent=t.question;
+ document.getElementById("answer").textContent="_";
+ document.getElementById("message").textContent="";
+ document.getElementById("message").className="";
+ document.getElementById("hint").style.display="none";
+ document.getElementById("hint").textContent="";
+}
+
+function typeLetter(ch){
+ if(ended||current>=tasks.length)return;
+ if(entered.length>=12)return;
+ entered+=ch;
+ document.getElementById("answer").textContent=entered;
+}
+
+function backspace(){
+ if(ended)return;
+ entered=entered.slice(0,-1);
+ document.getElementById("answer").textContent=entered||"_";
+}
+
+function clearAnswer(){
+ if(ended)return;
+ entered="";
+ document.getElementById("answer").textContent="_";
+}
+
+function showHint(){
+ if(ended)return;
+ const h=document.getElementById("hint");
+ h.textContent=tasks[current].hint;
+ h.style.display="block";
+}
+
+function checkAnswer(){
+ if(ended)return;
+ const t=tasks[current];
+ const msg=document.getElementById("message");
+
+ if(normalize(entered)!==normalize(t.answer)){
+  msg.textContent="NESPRÁVNÁ ODPOVĚĎ — ZKUS TO ZNOVU";
+  msg.className="bad";
+  return;
+ }
+
+ // Tajenkové písmeno se bere přímo ze správné odpovědi.
+ found[current]=Array.from(t.answer)[t.letterIndex];
+ document.getElementById("slot"+current).textContent=found[current];
+ document.getElementById("slot"+current).classList.add("found");
+ msg.textContent="SPRÁVNĚ! PÍSMENO ZÍSKÁNO.";
+ msg.className="good";
+
+ document.querySelectorAll("#keyboard button").forEach(b=>b.disabled=true);
+ const submit=document.querySelector("#game .mainbtn");
+ submit.disabled=true;
+
+ setTimeout(()=>{
+  if(ended)return;
+  current++;
+  if(current>=tasks.length){
+   finish(true);
+  }else{
+   document.querySelectorAll("#keyboard button").forEach(b=>b.disabled=false);
+   submit.disabled=false;
+   renderTask();
+  }
+ },700);
+}
+
+function finish(won){
+ ended=true;
+ if(interval)clearInterval(interval);
+ document.getElementById("game").style.display="none";
+ document.getElementById("end").style.display="block";
+ document.getElementById("status").textContent=won?"PROTOKOL SPLNĚN":"ČAS VYPRŠEL";
+
+ if(won){
+  document.getElementById("endTitle").textContent="✅ BOMBA ZNEŠKODNĚNA";
+  document.getElementById("endText").textContent=
+   "Všech sedm úkolů je vyřešeno. Tajenka tě dovede k dalšímu cíli:";
+  document.getElementById("finalCode").textContent=found.join("");
+ }else{
+  document.getElementById("endTitle").textContent="⛔ ČAS VYPRŠEL";
+  document.getElementById("endText").textContent=
+   "Protokol se nepodařilo dokončit včas. Zkus to znovu.";
+  document.getElementById("finalCode").textContent="";
+ }
+}
+</script>
+</body>
+</html>
